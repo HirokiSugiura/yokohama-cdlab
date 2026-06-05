@@ -1,3 +1,6 @@
+---
+layout: default
+---
 # 横浜コミュニティデザイン・ラボ ナレッジコモンズ
 
 > **Yokohama Community Design Lab — Knowledge Commons**
