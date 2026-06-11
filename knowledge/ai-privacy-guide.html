@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI プライバシーガイド 2026｜横浜コミュニティデザイン・ラボ</title>
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --card-bg: #111827;
+    --card-border: #1e293b;
+    --accent: #38bdf8;
+    --accent2: #818cf8;
+    --accent3: #34d399;
+    --danger: #f87171;
+    --warn: #fbbf24;
+    --ok: #34d399;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+    line-height: 1.7;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Particle Canvas ── */
+  #canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* ── Layout ── */
+  .wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 20px 80px;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    text-align: center;
+    padding: 80px 0 48px;
+  }
+  .hero .badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #1e3a5f, #1e1b4b);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    padding: 4px 16px;
+    border-radius: 99px;
+    margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-size: clamp(1.6rem, 5vw, 2.8rem);
+    font-weight: 800;
+    line-height: 1.25;
+    margin-bottom: 16px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero p {
+    color: var(--muted);
+    font-size: 1rem;
+    max-width: 580px;
+    margin: 0 auto 8px;
+  }
+  .hero .updated {
+    font-size: .8rem;
+    color: #4b5563;
+  }
+
+  /* ── Section Title ── */
+  .section-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: .05em;
+    margin: 60px 0 24px;
+    padding-left: 14px;
+    border-left: 3px solid var(--accent);
+  }
+
+  /* ── Risk Meter ── */
+  .risk-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+    margin-bottom: 12px;
+  }
+  .risk-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    padding: 24px 20px 20px;
+  }
+  .risk-card .svc-name {
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .risk-card .plan-name {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 14px;
+  }
+  .meter-track {
+    height: 10px;
+    background: #1e293b;
+    border-radius: 99px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .meter-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width .8s ease;
+  }
+  .fill-high   { background: linear-gradient(90deg, #f87171, #ef4444); width: 0; transition: width 1.2s cubic-bezier(.4,0,.2,1); }
+  .fill-mid    { background: linear-gradient(90deg, #fbbf24, #f59e0b); width: 0; transition: width 1.2s cubic-bezier(.4,0,.2,1); }
+  .fill-low    { background: linear-gradient(90deg, #34d399, #10b981); width: 0; transition: width 1.2s cubic-bezier(.4,0,.2,1); }
+  .risk-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: .8rem;
+  }
+  .risk-label .tag {
+    font-size: .7rem;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 99px;
+    letter-spacing: .05em;
+  }
+  .tag-high { background: rgba(239,68,68,.15); color: #f87171; }
+  .tag-mid  { background: rgba(245,158,11,.15); color: #fbbf24; }
+  .tag-low  { background: rgba(52,211,153,.15); color: #34d399; }
+  .risk-note {
+    margin-top: 10px;
+    font-size: .78rem;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+
+  /* ── Flip Cards ── */
+  .flip-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 24px;
+  }
+  .flip-wrapper {
+    perspective: 1000px;
+    height: 340px;
+  }
+  .flip-inner {
+    position: relative;
+    width: 100%; height: 100%;
+    transform-style: preserve-3d;
+    transition: transform .55s cubic-bezier(.4,0,.2,1);
+    cursor: pointer;
+  }
+  .flip-wrapper.flipped .flip-inner {
+    transform: rotateY(180deg);
+  }
+  .flip-front, .flip-back {
+    position: absolute;
+    width: 100%; height: 100%;
+    border-radius: var(--radius);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    padding: 24px 20px;
+    border: 1px solid var(--card-border);
+    display: flex;
+    flex-direction: column;
+  }
+  .flip-front { background: var(--card-bg); }
+  .flip-back  { background: #0f1e36; transform: rotateY(180deg); }
+
+  .flip-front .svc-icon {
+    font-size: 2rem;
+    margin-bottom: 10px;
+  }
+  .flip-front .svc-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+  .flip-front .svc-desc {
+    font-size: .82rem;
+    color: var(--muted);
+    flex: 1;
+  }
+  .flip-front .default-badge {
+    display: inline-block;
+    font-size: .7rem;
+    font-weight: 700;
+    padding: 3px 12px;
+    border-radius: 99px;
+    margin-top: 14px;
+    letter-spacing: .05em;
+  }
+  .badge-danger { background: rgba(239,68,68,.15); color: #f87171; border: 1px solid rgba(239,68,68,.3); }
+  .badge-warn   { background: rgba(245,158,11,.15); color: #fbbf24; border: 1px solid rgba(245,158,11,.3); }
+  .badge-ok     { background: rgba(52,211,153,.15);  color: #34d399;  border: 1px solid rgba(52,211,153,.3); }
+
+  .flip-hint {
+    font-size: .68rem;
+    color: #4b5563;
+    text-align: right;
+    margin-top: 10px;
+  }
+
+  .flip-back .back-title {
+    font-size: .85rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 14px;
+    letter-spacing: .05em;
+  }
+  .flip-back ol {
+    list-style: none;
+    flex: 1;
+  }
+  .flip-back ol li {
+    font-size: .8rem;
+    color: var(--text);
+    padding: 6px 0 6px 20px;
+    position: relative;
+    border-bottom: 1px solid #1e293b;
+    line-height: 1.5;
+  }
+  .flip-back ol li::before {
+    content: attr(data-n);
+    position: absolute;
+    left: 0;
+    top: 7px;
+    font-size: .68rem;
+    font-weight: 700;
+    color: var(--accent);
+    background: rgba(56,189,248,.1);
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .flip-back .back-note {
+    font-size: .72rem;
+    color: var(--muted);
+    margin-top: 12px;
+    line-height: 1.5;
+  }
+
+  /* ── Comparison Table ── */
+  .table-wrap {
+    overflow-x: auto;
+    border-radius: var(--radius);
+    border: 1px solid var(--card-border);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .82rem;
+  }
+  thead tr {
+    background: #111827;
+  }
+  thead th {
+    padding: 14px 16px;
+    text-align: left;
+    font-weight: 700;
+    color: var(--muted);
+    font-size: .75rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--card-border);
+  }
+  tbody tr {
+    border-bottom: 1px solid #1a2435;
+    transition: background .15s;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(56,189,248,.03); }
+  tbody td {
+    padding: 13px 16px;
+    color: var(--text);
+    vertical-align: middle;
+  }
+  tbody td:first-child { color: var(--muted); font-weight: 600; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .dot-red    { background: var(--danger); }
+  .dot-yellow { background: var(--warn); }
+  .dot-green  { background: var(--ok); }
+
+  /* ── Checklist ── */
+  .checklist {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    padding: 24px 24px 20px;
+  }
+  .checklist h3 {
+    font-size: .95rem;
+    font-weight: 700;
+    color: var(--accent2);
+    margin-bottom: 16px;
+    letter-spacing: .04em;
+  }
+  .checklist ul {
+    list-style: none;
+  }
+  .checklist ul li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 9px 0;
+    border-bottom: 1px solid #1a2435;
+    font-size: .85rem;
+    line-height: 1.5;
+  }
+  .checklist ul li:last-child { border-bottom: none; }
+  .check-icon {
+    flex-shrink: 0;
+    width: 20px; height: 20px;
+    border-radius: 6px;
+    background: rgba(129,140,248,.12);
+    border: 1px solid rgba(129,140,248,.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .7rem;
+    color: var(--accent2);
+    margin-top: 1px;
+  }
+
+  /* ── Alert Box ── */
+  .alert {
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    font-size: .85rem;
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+  .alert-warn {
+    background: rgba(251,191,36,.07);
+    border: 1px solid rgba(251,191,36,.25);
+    color: #fde68a;
+  }
+  .alert-info {
+    background: rgba(56,189,248,.07);
+    border: 1px solid rgba(56,189,248,.2);
+    color: #bae6fd;
+  }
+  .alert strong { font-weight: 700; }
+
+  /* ── Footer ── */
+  footer {
+    position: relative; z-index: 1;
+    text-align: center;
+    padding: 32px 20px 40px;
+    font-size: .75rem;
+    color: #374151;
+    border-top: 1px solid #111827;
+  }
+  footer a { color: #4b5563; text-decoration: none; }
+  footer a:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- Particle Background -->
+<canvas id="canvas"></canvas>
+
+<div class="wrap">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="badge">NPO 法人 横浜コミュニティデザイン・ラボ</div>
+    <h1>AI プライバシーガイド<br>2026 年版</h1>
+    <p>ChatGPT・Gemini・Claude の法人情報管理・プライバシー設定を一覧で確認できるガイドです。</p>
+    <p class="updated">最終更新：2026 年 6 月｜情報は各社公式ポリシーに基づきます</p>
+  </div>
+
+  <!-- Alert -->
+  <div class="alert alert-warn">
+    <strong>⚠ 重要：</strong>無料・個人プランは<strong>デフォルトでデータが学習に使用されます</strong>。法人・団体での業務利用は設定変更またはビジネスプランへの移行を強く推奨します。
+  </div>
+
+  <!-- Risk Meter -->
+  <div class="section-title">リスクメーター（アカウント種別別）</div>
+  <div class="risk-grid">
+
+    <div class="risk-card">
+      <div class="svc-name">ChatGPT</div>
+      <div class="plan-name">無料 / Plus プラン</div>
+      <div class="meter-track"><div class="meter-fill fill-high" data-w="85"></div></div>
+      <div class="risk-label">
+        <span class="muted" style="font-size:.75rem;color:#94a3b8">学習リスク</span>
+        <span class="tag tag-high">高</span>
+      </div>
+      <div class="risk-note">初期設定では会話がモデル学習に使用される。設定→データ管理→「モデル改善のために使用」をオフに。</div>
+    </div>
+
+    <div class="risk-card">
+      <div class="svc-name">ChatGPT</div>
+      <div class="plan-name">Team / Enterprise プラン</div>
+      <div class="meter-track"><div class="meter-fill fill-low" data-w="15"></div></div>
+      <div class="risk-label">
+        <span class="muted" style="font-size:.75rem;color:#94a3b8">学習リスク</span>
+        <span class="tag tag-low">低</span>
+      </div>
+      <div class="risk-note">Team・Enterprise は契約上デフォルトで学習オフ。API 経由も同様。日本データ居住オプションあり。</div>
+    </div>
+
+    <div class="risk-card">
+      <div class="svc-name">Gemini</div>
+      <div class="plan-name">無料（Google アカウント）</div>
+      <div class="meter-track"><div class="meter-fill fill-high" data-w="80"></div></div>
+      <div class="risk-label">
+        <span class="muted" style="font-size:.75rem;color:#94a3b8">学習リスク</span>
+        <span class="tag tag-high">高</span>
+      </div>
+      <div class="risk-note">Gemini アプリ アクティビティが ON だと学習利用の可能性あり。18 ヶ月自動削除が初期値。</div>
+    </div>
+
+    <div class="risk-card">
+      <div class="svc-name">Gemini</div>
+      <div class="plan-name">Google Workspace（法人）</div>
+      <div class="meter-track"><div class="meter-fill fill-low" data-w="10"></div></div>
+      <div class="risk-label">
+        <span class="muted" style="font-size:.75rem;color:#94a3b8">学習リスク</span>
+        <span class="tag tag-low">低</span>
+      </div>
+      <div class="risk-note">Business / Enterprise では組織外へのデータ共有・学習利用は原則禁止。管理者コンソールで追加制御可。</div>
+    </div>
+
+    <div class="risk-card">
+      <div class="svc-name">Claude</div>
+      <div class="plan-name">Free / Pro プラン</div>
+      <div class="meter-track"><div class="meter-fill fill-mid" data-w="60"></div></div>
+      <div class="risk-label">
+        <span class="muted" style="font-size:.75rem;color:#94a3b8">学習リスク</span>
+        <span class="tag tag-mid">中</span>
+      </div>
+      <div class="risk-note">2025 年 9 月以降、デフォルト設定の変更あり。設定→プライバシー→「Claude の改善に協力する」をオフに。</div>
+    </div>
+
+    <div class="risk-card">
+      <div class="svc-name">Claude</div>
+      <div class="plan-name">Team / Enterprise プラン</div>
+      <div class="meter-track"><div class="meter-fill fill-low" data-w="10"></div></div>
+      <div class="risk-label">
+        <span class="muted" style="font-size:.75rem;color:#94a3b8">学習リスク</span>
+        <span class="tag tag-low">低</span>
+      </div>
+      <div class="risk-note">Team・Enterprise はビジネス規約上デフォルト学習オフ。データ保持期間は 30 日（オプトアウト時）。</div>
+    </div>
+
+  </div>
+
+  <!-- Flip Cards -->
+  <div class="section-title">設定手順（カードをタップ / ホバーで裏面表示）</div>
+  <div class="flip-grid">
+
+    <!-- ChatGPT -->
+    <div class="flip-wrapper" onclick="this.classList.toggle('flipped')">
+      <div class="flip-inner">
+        <div class="flip-front">
+          <div class="svc-icon">🤖</div>
+          <div class="svc-title">ChatGPT</div>
+          <div class="svc-desc">
+            OpenAI 製。無料・Plus では会話履歴がモデル学習に使われることがある。<br><br>
+            Enterprise・Team・API は<strong>学習オフがデフォルト</strong>。<br><br>
+            「👍/👎」ボタンは学習に使用されるため注意。
+          </div>
+          <span class="default-badge badge-danger">無料/Plus：要設定変更</span>
+          <div class="flip-hint">▶ タップで設定手順を表示</div>
+        </div>
+        <div class="flip-back">
+          <div class="back-title">🔧 設定手順（無料 / Plus）</div>
+          <ol>
+            <li data-n="1">ChatGPT にログインし、画面左下の <strong>アカウントアイコン</strong> をクリック</li>
+            <li data-n="2">「<strong>設定</strong>」を開く</li>
+            <li data-n="3">「<strong>データコントロール</strong>」タブを選択</li>
+            <li data-n="4">「<strong>すべての人のためにモデルを改善する</strong>」トグルを <strong>OFF</strong> に</li>
+            <li data-n="5">会話履歴をオフにする場合は「<strong>チャット履歴とトレーニング</strong>」もオフ</li>
+          </ol>
+          <div class="back-note">✅ Enterprise / Team / API は契約上デフォルトオフのため手順不要</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gemini -->
+    <div class="flip-wrapper" onclick="this.classList.toggle('flipped')">
+      <div class="flip-inner">
+        <div class="flip-front">
+          <div class="svc-icon">♊</div>
+          <div class="svc-title">Google Gemini</div>
+          <div class="svc-desc">
+            Google 製。個人アカウントはアクティビティが ON の場合、学習に使用される可能性あり。<br><br>
+            Workspace（法人契約）は<strong>デフォルトで学習利用禁止</strong>。<br><br>
+            デフォルトの自動削除は 18 ヶ月。
+          </div>
+          <span class="default-badge badge-danger">個人：要設定変更</span>
+          <div class="flip-hint">▶ タップで設定手順を表示</div>
+        </div>
+        <div class="flip-back">
+          <div class="back-title">🔧 設定手順（個人 Google アカウント）</div>
+          <ol>
+            <li data-n="1"><a href="https://myactivity.google.com/product/gemini" target="_blank" style="color:var(--accent)">myactivity.google.com/product/gemini</a> にアクセス</li>
+            <li data-n="2">「<strong>Gemini アプリ アクティビティ</strong>」をクリック</li>
+            <li data-n="3">「<strong>Gemini アプリ アクティビティをオフにする</strong>」を選択</li>
+            <li data-n="4">確認ダイアログで <strong>「オフにする」</strong> をクリック</li>
+            <li data-n="5">既存の履歴を削除する場合は「<strong>削除</strong>」→「<strong>すべての期間</strong>」</li>
+          </ol>
+          <div class="back-note">✅ Google Workspace（法人契約）は管理コンソールで一括制御可</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Claude -->
+    <div class="flip-wrapper" onclick="this.classList.toggle('flipped')">
+      <div class="flip-inner">
+        <div class="flip-front">
+          <div class="svc-icon">🟠</div>
+          <div class="svc-title">Claude</div>
+          <div class="svc-desc">
+            Anthropic 製。2025 年 9 月以降、Pro・Free は学習利用にオプトイン形式が導入された。<br><br>
+            Team・Enterprise は<strong>ビジネス規約で学習オフ</strong>。<br><br>
+            オプトアウト時のデータ保持は 30 日間。
+          </div>
+          <span class="default-badge badge-warn">Free/Pro：設定確認を推奨</span>
+          <div class="flip-hint">▶ タップで設定手順を表示</div>
+        </div>
+        <div class="flip-back">
+          <div class="back-title">🔧 設定手順（Free / Pro）</div>
+          <ol>
+            <li data-n="1">claude.ai にログイン後、右上の <strong>アカウントアイコン</strong> をクリック</li>
+            <li data-n="2">「<strong>設定</strong>（Settings）」を開く</li>
+            <li data-n="3">「<strong>プライバシー</strong>（Privacy）」タブを選択</li>
+            <li data-n="4">「<strong>Claude の改善に協力する</strong>」トグルを <strong>OFF</strong> に</li>
+            <li data-n="5">変更内容を確認して保存</li>
+          </ol>
+          <div class="back-note">✅ Team / Enterprise はビジネス規約でデフォルトオフ。設定変更は不要</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Comparison Table -->
+  <div class="section-title">サービス横断比較表</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>項目</th>
+          <th>ChatGPT</th>
+          <th>Gemini</th>
+          <th>Claude</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>無料プランの学習利用</td>
+          <td><span class="dot dot-red"></span>デフォルト ON</td>
+          <td><span class="dot dot-red"></span>デフォルト ON</td>
+          <td><span class="dot dot-yellow"></span>2025/9 以降 ON に変更</td>
+        </tr>
+        <tr>
+          <td>法人プランの学習利用</td>
+          <td><span class="dot dot-green"></span>デフォルト OFF</td>
+          <td><span class="dot dot-green"></span>デフォルト OFF</td>
+          <td><span class="dot dot-green"></span>デフォルト OFF</td>
+        </tr>
+        <tr>
+          <td>オプトアウト方法</td>
+          <td>設定 → データコントロール</td>
+          <td>アクティビティ設定</td>
+          <td>設定 → プライバシー</td>
+        </tr>
+        <tr>
+          <td>データ保持期間（個人）</td>
+          <td>削除まで保持</td>
+          <td>デフォルト 18 ヶ月</td>
+          <td>オプトアウト時 30 日</td>
+        </tr>
+        <tr>
+          <td>日本データ居住</td>
+          <td><span class="dot dot-green"></span>Enterprise で選択可</td>
+          <td><span class="dot dot-yellow"></span>Workspace の地域設定</td>
+          <td><span class="dot dot-yellow"></span>Enterprise で米 / EU 選択</td>
+        </tr>
+        <tr>
+          <td>API 利用の学習</td>
+          <td><span class="dot dot-green"></span>デフォルト OFF</td>
+          <td><span class="dot dot-green"></span>デフォルト OFF</td>
+          <td><span class="dot dot-green"></span>デフォルト OFF</td>
+        </tr>
+        <tr>
+          <td>第三者監査 / 認証</td>
+          <td>SOC 2 Type II、ISO 27001</td>
+          <td>ISO 27001、SOC 2</td>
+          <td>SOC 2 Type II</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Checklist -->
+  <div class="section-title">NPO・社会的団体向け 推奨チェックリスト</div>
+  <div class="alert alert-info" style="margin-bottom:20px">
+    <strong>💡 ポイント：</strong>ステークホルダーの個人情報・寄付者データ・内部審議中の情報を AI に入力する前に、以下を確認してください。
+  </div>
+  <div class="checklist">
+    <h3>📋 確認事項（共通）</h3>
+    <ul>
+      <li><div class="check-icon">①</div><div>使用中のプランが<strong>法人・ビジネスプラン</strong>であることを確認（個人アカウントの流用は避ける）</div></li>
+      <li><div class="check-icon">②</div><div>無料・個人プランを使う場合は<strong>学習オプトアウト設定</strong>を完了させる</div></li>
+      <li><div class="check-icon">③</div><div>役員・社員・寄付者の<strong>氏名・住所・連絡先等の個人情報</strong>をプロンプトにそのまま貼り付けない</div></li>
+      <li><div class="check-icon">④</div><div>未公開の予算案・事業計画・役員選任情報などは<strong>審議確定後</strong>に入力する</div></li>
+      <li><div class="check-icon">⑤</div><div>スタッフの AI 利用ガイドラインを策定し、<strong>年 1 回以上</strong>のアップデートを行う</div></li>
+      <li><div class="check-icon">⑥</div><div>API キーやパスワードを AI チャットに<strong>絶対に貼り付けない</strong></div></li>
+      <li><div class="check-icon">⑦</div><div>利用するサービスの<strong>プライバシーポリシー改定</strong>を定期的に確認する（メール通知設定推奨）</div></li>
+    </ul>
+  </div>
+
+  <br>
+
+  <!-- Info -->
+  <div class="alert alert-info">
+    <strong>📄 情報源：</strong>
+    本ガイドは各社公式ポリシー・ヘルプセンターおよび 2026 年時点の公開情報を基に作成しています。
+    最新情報は
+    <a href="https://openai.com/business-data/" target="_blank" style="color:var(--accent)">OpenAI ビジネスデータ</a>・
+    <a href="https://support.google.com/gemini/answer/13594961" target="_blank" style="color:var(--accent)">Gemini プライバシーハブ</a>・
+    <a href="https://www.anthropic.com/legal/privacy" target="_blank" style="color:var(--accent)">Anthropic プライバシーポリシー</a>
+    を参照ください。
+  </div>
+
+</div><!-- /wrap -->
+
+<!-- Footer -->
+<footer>
+  <p>© 2026 <a href="https://yokohamalab.jp" target="_blank">NPO 法人 横浜コミュニティデザイン・ラボ</a> — <a href="https://github.com/HirokiSugiura/yokohama-cdlab" target="_blank">GitHub ナレッジコモンズ</a></p>
+  <p style="margin-top:6px">本ガイドは <a href="https://creativecommons.org/licenses/by/4.0/deed.ja" target="_blank">CC BY 4.0</a> でご利用いただけます</p>
+</footer>
+
+<!-- Particle Script -->
+<script>
+(function(){
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, particles = [];
+
+  function resize(){
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  const N = 60;
+  for(let i=0; i<N; i++){
+    particles.push({
+      x: Math.random()*W,
+      y: Math.random()*H,
+      r: Math.random()*1.8+0.4,
+      dx: (Math.random()-.5)*.35,
+      dy: (Math.random()-.5)*.35,
+      a: Math.random()*.5+.15
+    });
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    for(let p of particles){
+      p.x += p.dx; p.y += p.dy;
+      if(p.x<0) p.x=W; if(p.x>W) p.x=0;
+      if(p.y<0) p.y=H; if(p.y>H) p.y=0;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(56,189,248,${p.a})`;
+      ctx.fill();
+    }
+    // draw lines between nearby particles
+    for(let i=0; i<particles.length; i++){
+      for(let j=i+1; j<particles.length; j++){
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx*dx+dy*dy);
+        if(dist < 130){
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.strokeStyle = `rgba(56,189,248,${(1-dist/130)*0.12})`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+</script>
+
+<script>
+// Animate meter bars on load
+window.addEventListener('load', function() {
+  setTimeout(function() {
+    document.querySelectorAll('[data-w]').forEach(function(el) {
+      el.style.width = el.dataset.w + '%';
+    });
+  }, 300);
+});
+
+// Flip card click handler
+document.querySelectorAll('.flip-wrapper').forEach(function(card) {
+  card.addEventListener('click', function() {
+    this.classList.toggle('flipped');
+  });
+});
+</script>
+
+</body>
+</html>
