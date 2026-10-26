@@ -23,12 +23,20 @@ layout: default
 
 ```
 yokohama-cdlab/
-├── README.md                  # このファイル
-├── knowledge/                 # 実践ノウハウ（テーマ別）
-│   └── cowork-obsidian-npo.md # AI×Obsidianでナレッジ管理を実践した話（初稿）
-├── projects/                  # プロジェクト記録（追加予定）
-├── history/                   # 活動年表（追加予定）
-└── templates/                 # 企画書・申請書・ワークショップ設計の雛形（追加予定）
+├── README.md                       # このファイル
+├── SETUP_GUIDE.md                  # GitHub Pages セットアップ手順書
+├── claude-in-chrome-prompt.md      # Claude in Chrome 指示プロンプト
+├── knowledge/                      # 実践ノウハウ（テーマ別）
+│   ├── cowork-obsidian-npo.md      # AI×Obsidianでナレッジ管理を実践した話（初稿）
+│   └── ai-privacy-guide.html       # AI プライバシーガイド 2026
+└── projects/                       # プロジェクト記録（2026年度事業計画書ベース）
+    ├── README.md                   # プロジェクト一覧
+    ├── local-good-yokohama.md      # LOCAL GOOD YOKOHAMA
+    ├── kotobuki-kyodo-space.md     # 横浜市ことぶき協働スペース
+    ├── media-yokohama-kohoku.md    # メディア事業（ヨコハマ経済新聞・港北経済新聞）
+    ├── creative-support.md         # クリエイティブサポート事業
+    ├── space-operations.md         # スペース運営事業
+    └── alliance-strategy.md        # アライアンス戦略・他団体との連携推進
 ```
 
 ---
